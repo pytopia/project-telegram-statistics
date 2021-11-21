@@ -130,3 +130,5 @@ dmypy.json
 
 # custom .gitignore
 .vscode
+*.ipynb
+*.json
