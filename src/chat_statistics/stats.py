@@ -1,8 +1,11 @@
 import json
+import re
+import json
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Union
 
+import demoji
 import arabic_reshaper
 from bidi.algorithm import get_display
 from hazm import Normalizer, sent_tokenize, word_tokenize
@@ -89,6 +92,27 @@ class ChatStatistics:
 
         return dict(Counter(users).most_common(top_n))
 
+    def remove_stopwords(self, text):
+        """Removes stop-words from the text.
+
+        :param text: Text that may contain stop-words.
+        """
+        tokens = word_tokenize(self.normalizer.normalize(text))
+        tokens = list(filter(lambda item: item not in self.stop_words, tokens))
+        return ' '.join(tokens)
+
+    def de_emojify(self, text):
+        """Removes emojis and some special characters from the text.
+
+        :param text: Text that contains emoji
+        """
+        regrex_pattern = re.compile(pattern = "["
+            "\u2069"
+            "\u2066"
+                    "]+", flags = re.UNICODE)
+        text = regrex_pattern.sub(r'', text)
+        return demoji.replace(text, " ")
+
     def generate_word_cloud(
         self,
         output_dir: Union[str, Path],
@@ -102,22 +126,28 @@ class ChatStatistics:
         """
         logger.info("Loading text content...")
         text_content = ''
-        for msg in self.chat_data['messages']:
-            if type(msg['text']) is str:
-                tokens = word_tokenize(msg['text'])
-                tokens = list(filter(lambda item: item not in self.stop_words, tokens))
-                text_content += f" {' '.join(tokens)}"
+        messages = iter(self.chat_data['messages'])
+        for message in messages:
+            msg = message['text']
+            if isinstance(msg, list):
+                for sub_msg in msg:
+                    if isinstance(sub_msg, str):
+                        text_content += f" {self.remove_stopwords(sub_msg)}"
+                    elif isinstance(sub_msg, dict) and sub_msg['type'] in {
+                        'text_link', 'bold', 'italic', 'hashtag', 'mention', 'pre'}:
+                        text_content += f" {self.remove_stopwords(sub_msg['text'])}"
+            else:
+                text_content += f" {self.remove_stopwords(msg)}"
 
-        # normalzie, reshape for final word cloud
-        text_content = self.normalizer.normalize(text_content)
-        text_content = arabic_reshaper.reshape(text_content)
+        # reshape for final word cloud
+        text_content = arabic_reshaper.reshape(self.de_emojify(text_content))
         text_content = get_display(text_content)
 
         logger.info("Generating word cloud...")
         # generate word cloud
         wordcloud = WordCloud(
             width=1200, height=1200,
-            font_path=str(DATA_DIR / 'BHoma.ttf'),
+            font_path=str(DATA_DIR / 'Vazir.ttf'),
             background_color=background_color,
             max_font_size=250
         ).generate(text_content)
