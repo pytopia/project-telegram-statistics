@@ -12,3 +12,10 @@ Then run:
 python src/chat_statistics/stats.py
 ```
 to generate a word cloud of json data in `DATA_DIR`
+
+## Adding Font:
+Use Vazir font, which may be found in the following repository, to better display Persian words alongside English words:
+
+https://github.com/rastikerdar/vazir-font/releases
+
+add **`Vazir.ttf`** in **`src/data`** directory
