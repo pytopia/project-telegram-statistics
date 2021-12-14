@@ -1,11 +1,11 @@
-import re
 import json
+import re
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Union
 
-import demoji
 import arabic_reshaper
+import demoji
 from bidi.algorithm import get_display
 from hazm import Normalizer, sent_tokenize, word_tokenize
 from loguru import logger
@@ -16,6 +16,7 @@ from wordcloud import WordCloud
 class ChatStatistics:
     """Generates chat statistics from a telegram chat json file
     """
+
     def __init__(self, chat_json: Union[str, Path]):
         """
         :param chat_json: path to telegram export json file
@@ -105,11 +106,9 @@ class ChatStatistics:
 
         :param text: Text that contains emoji
         """
-        regrex_pattern = re.compile(pattern = "["
-            "\u2069"
-            "\u2066"
-                    "]+", flags = re.UNICODE)
-        text = regrex_pattern.sub(r'', text)
+        regrex_pattern = re.compile(
+            pattern="[\u2069\u2066]+", flags=re.UNICODE)
+        text = regrex_pattern.sub('', text)
         return demoji.replace(text, " ")
 
     def generate_word_cloud(
@@ -133,7 +132,8 @@ class ChatStatistics:
                     if isinstance(sub_msg, str):
                         text_content += f" {self.remove_stopwords(sub_msg)}"
                     elif isinstance(sub_msg, dict) and sub_msg['type'] in {
-                        'text_link', 'bold', 'italic', 'hashtag', 'mention', 'pre'}:
+                        'text_link', 'bold', 'italic', 'hashtag', 'mention', 'pre'
+                    }:
                         text_content += f" {self.remove_stopwords(sub_msg['text'])}"
             else:
                 text_content += f" {self.remove_stopwords(msg)}"
