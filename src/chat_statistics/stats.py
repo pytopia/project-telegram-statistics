@@ -132,9 +132,11 @@ class ChatStatistics:
                     if isinstance(sub_msg, str):
                         text_content += f" {self.remove_stopwords(sub_msg)}"
                     elif isinstance(sub_msg, dict) and sub_msg['type'] in {
-                        'text_link', 'bold', 'italic', 'hashtag', 'mention', 'pre'
+                        'text_link', 'bold', 'italic',
+                        'hashtag', 'mention', 'pre'
                     }:
-                        text_content += f" {self.remove_stopwords(sub_msg['text'])}"
+                        text_ = self.remove_stopwords(sub_msg['text'])
+                        text_content += f" {text_}"
             else:
                 text_content += f" {self.remove_stopwords(msg)}"
 
@@ -153,6 +155,7 @@ class ChatStatistics:
 
         logger.info(f"Saving word cloud to {output_dir}")
         wordcloud.to_file(str(Path(output_dir) / 'wordcloud.png'))
+
 
 if __name__ == "__main__":
     chat_stats = ChatStatistics(chat_json=DATA_DIR / 'online.json')
