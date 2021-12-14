@@ -106,8 +106,7 @@ class ChatStatistics:
 
         :param text: Text that contains emoji
         """
-        regrex_pattern = re.compile(
-            pattern="[\u2069\u2066]+", flags=re.UNICODE)
+        regrex_pattern = re.compile(pattern="[\u2069\u2066]+", flags=re.UNICODE)
         text = regrex_pattern.sub('', text)
         return demoji.replace(text, " ")
 
