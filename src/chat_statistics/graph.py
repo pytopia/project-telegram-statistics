@@ -1,17 +1,18 @@
 import json
+from collections import defaultdict
 from pathlib import Path
 from typing import Union
-from collections import defaultdict
 
 import demoji
 from loguru import logger
-from src.data import DATA_DIR
 from pyvis.network import Network
+from src.data import DATA_DIR
 
 
 class ChatGraph:
     """Generates Graph from a telegram chat json file
     """
+
     def __init__(self, chat_json: Union[str, Path]):
         """
         :param chat_json: path to telegram export json file
@@ -21,8 +22,7 @@ class ChatGraph:
         with open(chat_json) as f:
             self.chat_data = json.load(f)
 
-
-    def red2blue(self,n):
+    def red2blue(self, n):
         """This method generates n  colors from the red to blue
          spectrum and returns them as a list of hex-colors.
         """
@@ -32,7 +32,6 @@ class ChatGraph:
             rgb = (int(256-d*i), 0, int(d*i))
             colors.append('#%02x%02x%02x' % rgb)
         return colors
-
 
     def generate_graph(self, output_dir: Union[str, Path]):
         """Generates a Graph from the chat data
@@ -48,11 +47,16 @@ class ChatGraph:
 
         for message in messages:
             # Exclude non-message contents from the scope of our analysis.
-            if message['type'] == 'message' :
+            if message['type'] == 'message':
                 # Store the ID and name of each user in users dictionary.
-                if message["from_id"] not in users and message["from"] != None:
-                    users[message["from_id"]] = demoji.replace(message["from"], "")
-                # Define who wrote each message in this part and keep his/her ID.
+                if (
+                    message["from_id"] not in users and
+                    message["from"] is not None
+                ):
+                    users[message["from_id"]] = demoji.replace(
+                        message["from"], "")
+                # Define who wrote each message in
+                # this part and keep his/her ID.
                 message_writer[message["id"]] = message["from_id"]
             if "reply_to_message_id" in message:
                 # Figure out who the responder was.
@@ -63,7 +67,8 @@ class ChatGraph:
                     reply_to = message_writer[reply_to_id]
                 # In conections dictionary, we keep track of the amount of
                 # interactions that exist existing between the two persons.
-                # It should be noted that (userA, userB) differs from (userB, userA).
+                # It should be noted that (userA, userB)
+                # differs from (userB, userA).
                 conections[(reply_from, reply_to)] += 1
                 # Increase the interaction  of anyone
                 # who has replayed a message or  received a reply
@@ -76,7 +81,8 @@ class ChatGraph:
         # person as the value of that node.
         node_value = []
         for user in users.keys():
-            # Consider the value 1 for Nodes that have not interacted with others.
+            # Consider the value 1 for Nodes that
+            # have not interacted with others.
             if user not in interactions:
                 node_value.append(1)
             # Consider the value of interaction + 1 for other nodes.
@@ -90,16 +96,16 @@ class ChatGraph:
         value_color_dict = {}
         for i in range(len(colors)):
             value_color_dict[sorted_node_value[i]] = colors[i]
-        users_color = list(map(lambda x:value_color_dict[x], node_value))
+        users_color = list(map(lambda x: value_color_dict[x], node_value))
         # Generate graph
         G = Network(height='100%', width='100%')
         # Add all nodes to the graph.
         G.add_nodes(list(users.keys()),
-                         title=list(users.values()),
-                         value = node_value,
-                         label=list(users.values()),
-                         color=users_color
-                         )
+                    title=list(users.values()),
+                    value=node_value,
+                    label=list(users.values()),
+                    color=users_color
+                    )
         # Add all edges to the graph.
         for conection in conections:
             a, b = conection
@@ -127,13 +133,13 @@ class ChatGraph:
                                         }
                                         }
         ''')
-        #G.show_buttons(filter_=['physics','nodes'])
+        # G.show_buttons(filter_=['physics','nodes'])
         G.show(str(Path(output_dir).relative_to(Path.cwd()) / "graph.html"))
 
         logger.info(f"Saving graph to {output_dir}")
 
+
 if __name__ == "__main__":
     chat_graph = ChatGraph(chat_json=DATA_DIR / 'online.json')
     chat_graph.generate_graph(output_dir=DATA_DIR)
-
     print('Done!')
