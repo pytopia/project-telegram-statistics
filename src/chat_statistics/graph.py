@@ -29,7 +29,7 @@ class ChatGraph:
         colors = []
         d = 256 / n
         for i in range(n):
-            rgb = (int(256-d*i), 0, int(d*i))
+            rgb = (int(256 - (d * i)), 0, int(d * i))
             colors.append('#%02x%02x%02x' % rgb)
         return colors
 
@@ -87,7 +87,7 @@ class ChatGraph:
                 node_value.append(1)
             # Consider the value of interaction + 1 for other nodes.
             else:
-                node_value.append(interactions[user]+1)
+                node_value.append(interactions[user] + 1)
 
         sorted_node_value = sorted(node_value, reverse=True)
         # Create color based on the amount of nodes.
