@@ -63,8 +63,8 @@ class ChatGraph:
                 reply_to_id = message["reply_to_message_id"]
                 if reply_to_id in message_writer:
                     reply_to = message_writer[reply_to_id]
-                # In conections dictionary, we keep track of the amount of
-                # interactions that exist existing between the two persons.
+                # In conections dictionary, we keep track the amount of
+                # interactions that exist between two persons.
                 # It should be noted that (userA, userB)
                 # differs from (userB, userA).
                 conections[(reply_from, reply_to)] += 1
@@ -131,7 +131,6 @@ class ChatGraph:
         ''')
         # G.show_buttons(filter_=['physics','nodes'])
         G.show(str(Path(output_dir) / "graph.html"))
-
         logger.info(f"Saved  graph to {output_dir}.")
 
 
