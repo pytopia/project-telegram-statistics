@@ -12,17 +12,16 @@ from src.data import DATA_DIR
 class ChatGraph:
     """Generates Graph from a telegram chat json file
     """
-
     def __init__(self, chat_json: Union[str, Path]):
         """
         :param chat_json: path to telegram export json file
         """
         # load chat data
-        logger.info(f"Loading chat data from {chat_json}")
+        logger.info(f"Loading chat data from {chat_json}...")
         with open(chat_json) as f:
             self.chat_data = json.load(f)
 
-    def red2blue(self, n):
+    def red2blue(self, n: int):
         """This method generates n  colors from the red to blue
          spectrum and returns them as a list of hex-colors.
         """
@@ -53,8 +52,7 @@ class ChatGraph:
                     message["from_id"] not in users and
                     message["from"] is not None
                 ):
-                    users[message["from_id"]] = demoji.replace(
-                        message["from"], "")
+                    users[message["from_id"]] = demoji.replace(message["from"], "")
                 # Define who wrote each message in
                 # this part and keep his/her ID.
                 message_writer[message["id"]] = message["from_id"]
@@ -104,15 +102,13 @@ class ChatGraph:
                     title=list(users.values()),
                     value=node_value,
                     label=list(users.values()),
-                    color=users_color
-                    )
+                    color=users_color)
         # Add all edges to the graph.
-        for conection in conections:
-            a, b = conection
+        for node_a, node_b in conections:
             nodes = G.get_nodes()
-            if a not in nodes or b not in nodes:
+            if node_a not in nodes or node_b not in nodes:
                 continue
-            G.add_edge(a, b)
+            G.add_edge(node_a, node_b)
 
         # Generate the graph with the necessary options.
         G.set_options('''
@@ -134,9 +130,9 @@ class ChatGraph:
                                         }
         ''')
         # G.show_buttons(filter_=['physics','nodes'])
-        G.show(str(Path(output_dir).relative_to(Path.cwd()) / "graph.html"))
+        G.show(str(DATA_DIR / "graph.html"))
 
-        logger.info(f"Saving graph to {output_dir}")
+        logger.info(f"Saved  graph to {output_dir}.")
 
 
 if __name__ == "__main__":
