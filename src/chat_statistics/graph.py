@@ -130,7 +130,7 @@ class ChatGraph:
                                         }
         ''')
         # G.show_buttons(filter_=['physics','nodes'])
-        G.show(str(DATA_DIR / "graph.html"))
+        G.show(str(Path(output_dir) / "graph.html"))
 
         logger.info(f"Saved  graph to {output_dir}.")
 
