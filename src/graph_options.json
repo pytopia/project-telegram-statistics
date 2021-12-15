@@ -1,0 +1,16 @@
+{
+    "nodes": {
+        "font": {
+        "size": 15
+        }
+
+    },
+    "physics": {
+        "barnesHut": {
+        "gravitationalConstant": -30000,
+        "centralGravity": 1.1,
+        "springLength": 500
+        },
+        "minVelocity": 0.75
+    }
+}

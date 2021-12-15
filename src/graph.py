@@ -1,12 +1,12 @@
+import argparse
 import json
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Union
 
 import demoji
 from loguru import logger
 from pyvis.network import Network
-from src.data import DATA_DIR
 
 
 class ChatGraph:
@@ -22,8 +22,9 @@ class ChatGraph:
             self.chat_data = json.load(f)
 
     def red2blue(self, n: int):
-        """This method generates n  colors from the red to blue
-         spectrum and returns them as a list of hex-colors.
+        """
+        This method generates n colors from the red to blue
+        spectrum and returns them as a list of hex-colors.
         """
         colors = []
         d = 256 / n
@@ -32,10 +33,11 @@ class ChatGraph:
             colors.append('#%02x%02x%02x' % rgb)
         return colors
 
-    def generate_graph(self, output_dir: Union[str, Path]):
+    def generate_graph(self, output_graph_path: Union[str, Path], top_n: int = None):
         """Generates a Graph from the chat data
 
-        :param output_dir: path to output directory for graph image
+        :param output_graph_path: path to output directory for graph image
+        :param top_n: number of top users to include in graph
         """
         logger.info("Loading reply messages...")
         messages = iter(self.chat_data['messages'])
@@ -86,8 +88,8 @@ class ChatGraph:
             # Consider the value of interaction + 1 for other nodes.
             else:
                 node_value.append(interactions[user] + 1)
-
         sorted_node_value = sorted(node_value, reverse=True)
+
         # Create color based on the amount of nodes.
         colors = self.red2blue(len(users))
         # Match the colors to the values of each node in this section.
@@ -95,46 +97,52 @@ class ChatGraph:
         for i in range(len(colors)):
             value_color_dict[sorted_node_value[i]] = colors[i]
         users_color = list(map(lambda x: value_color_dict[x], node_value))
+
         # Generate graph
         G = Network(height='100%', width='100%')
         # Add all nodes to the graph.
-        G.add_nodes(list(users.keys()),
-                    title=list(users.values()),
-                    value=node_value,
-                    label=list(users.values()),
-                    color=users_color)
+        G.add_nodes(
+            list(users.keys()),
+            title=list(users.values()),
+            value=node_value,
+            label=list(users.values()),
+            color=users_color
+        )
+
+        # only show most active users and their connections in the graph
+        if top_n is not None:
+            logger.info(f"Filtering by top {top_n} users...")
+            interaction_count = defaultdict(int)
+            for (node_a, node_b), weight in conections.items():
+                interaction_count[node_a] += weight
+                interaction_count[node_b] += weight
+
+            active_users = Counter(interaction_count).most_common(top_n)
+            active_users = [x[0] for x in active_users]
+
         # Add all edges to the graph.
         for node_a, node_b in conections:
+            if (top_n is None) or not any([node_a in active_users, node_b in active_users]):
+                continue
+
             nodes = G.get_nodes()
             if node_a not in nodes or node_b not in nodes:
                 continue
             G.add_edge(node_a, node_b)
 
         # Generate the graph with the necessary options.
-        G.set_options('''
-                        var options = {
-                                        "nodes": {
-                                            "font": {
-                                            "size": 15
-                                            }
-
-                                        },
-                                        "physics": {
-                                            "barnesHut": {
-                                            "gravitationalConstant": -30000,
-                                            "centralGravity": 1.1,
-                                            "springLength": 500
-                                            },
-                                            "minVelocity": 0.75
-                                        }
-                                        }
-        ''')
-        # G.show_buttons(filter_=['physics','nodes'])
-        G.show(str(Path(output_dir) / "graph.html"))
-        logger.info(f"Saved  graph to {output_dir}.")
+        options = json.load(open("src/graph_options.json"))
+        G.set_options(f'var options = {json.dumps(options)}')
+        G.show(str(Path(output_graph_path)))
+        logger.info(f"Saved graph to {output_graph_path}.")
 
 
 if __name__ == "__main__":
-    chat_graph = ChatGraph(chat_json=DATA_DIR / 'online.json')
-    chat_graph.generate_graph(output_dir=DATA_DIR)
-    print('Done!')
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--chat_json", help="Path to telegram export json file")
+    parser.add_argument("--output_graph_path", help="Path to output directory for graph image")
+    parser.add_argument("--top_n", help="Number of top users to show in the graph", type=int)
+    args = parser.parse_args()
+
+    chat_graph = ChatGraph(chat_json=args.chat_json)
+    chat_graph.generate_graph(output_graph_path=args.output_graph_path, top_n=args.top_n)

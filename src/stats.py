@@ -1,3 +1,4 @@
+import argparse
 import json
 import re
 from collections import Counter, defaultdict
@@ -9,8 +10,10 @@ import demoji
 from bidi.algorithm import get_display
 from hazm import Normalizer, sent_tokenize, word_tokenize
 from loguru import logger
-from src.data import DATA_DIR
 from wordcloud import WordCloud
+
+from src.data import DATA_DIR
+from tqdm import tqdm
 
 
 class ChatStatistics:
@@ -69,6 +72,9 @@ class ChatStatistics:
         # check messages for questions
         is_question = defaultdict(bool)
         for msg in self.chat_data['messages']:
+            if not msg.get('text'):
+                continue
+
             if not isinstance(msg['text'], str):
                 msg['text'] = self.rebuild_msg(msg['text'])
 
@@ -87,7 +93,6 @@ class ChatStatistics:
                 continue
             if is_question[msg['reply_to_message_id']] is False:
                 continue
-
             users.append(msg['from'])
 
         return dict(Counter(users).most_common(top_n))
@@ -112,19 +117,22 @@ class ChatStatistics:
 
     def generate_word_cloud(
         self,
-        output_dir: Union[str, Path],
+        wordcloud_image_path: Union[str, Path],
+        generate_from_frequencies: bool = False,
         width: int = 800, height: int = 600,
         max_font_size: int = 250,
         background_color: str = 'white',
     ):
         """Generates a word cloud from the chat data
 
-        :param output_dir: path to output directory for word cloud image
+        :param wordcloud_image_path: path to output directory for word cloud image
         """
         logger.info("Loading text content...")
         text_content = ''
-        messages = iter(self.chat_data['messages'])
-        for message in messages:
+        for message in tqdm(self.chat_data['messages'], 'Processing messages...'):
+            if not message.get('text'):
+                continue
+
             msg = message['text']
             if isinstance(msg, list):
                 for sub_msg in msg:
@@ -139,27 +147,50 @@ class ChatStatistics:
             else:
                 text_content += f" {self.remove_stopwords(msg)}"
 
-        # reshape for final word cloud
-        text_content = arabic_reshaper.reshape(self.de_emojify(text_content))
-        text_content = get_display(text_content)
-
-        logger.info("Generating word cloud...")
-        # generate word cloud
         wordcloud = WordCloud(
-            width=1200, height=1200,
+            width=width, height=height,
             font_path=str(DATA_DIR / 'Vazir.ttf'),
             background_color=background_color,
-            max_font_size=250
-        ).generate(text_content)
+            max_font_size=max_font_size
+        )
 
-        logger.info(f"Saving word cloud to {output_dir}")
-        wordcloud.to_file(str(Path(output_dir) / 'wordcloud.png'))
+        if generate_from_frequencies:
+            tokens = list(word_tokenize(self.normalizer.normalize(text_content)))
+            top_n_words = dict(Counter(tokens).most_common(100))
+
+            reshaped_tokens_count = defaultdict(int)
+            for token, count in top_n_words.items():
+                token = arabic_reshaper.reshape(self.de_emojify(token))
+                token = get_display(token)
+                reshaped_tokens_count[token] = reshaped_tokens_count.get(token, 0) + count
+
+            logger.info("Generating word cloud...")
+            wordcloud.generate_from_frequencies(top_n_words)
+        else:
+            text_content = arabic_reshaper.reshape(self.de_emojify(text_content))
+            text_content = get_display(text_content)
+
+            logger.info("Generating word cloud...")
+            wordcloud.generate(text_content)
+
+        logger.info(f"Saving word cloud to {wordcloud_image_path}")
+        wordcloud.to_file(str(Path(wordcloud_image_path)))
 
 
 if __name__ == "__main__":
-    chat_stats = ChatStatistics(chat_json=DATA_DIR / 'online.json')
-    top_users = chat_stats.get_top_users(top_n=10)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--chat_json", help="Path to telegram export json file")
+    parser.add_argument("--wordcloud_image_path", help="Path to output directory for graph image")
+    parser.add_argument("--top_n", help="Number of top users to get", type=int, default=10)
+    parser.add_argument("--generate_from_frequencies", action='store_true', help="Generate word cloud from frequencies")
+    args = parser.parse_args()
+
+    chat_stats = ChatStatistics(chat_json=args.chat_json)
+    top_users = chat_stats.get_top_users(top_n=args.top_n)
     print(top_users)
 
-    chat_stats.generate_word_cloud(output_dir=DATA_DIR)
+    chat_stats.generate_word_cloud(
+        wordcloud_image_path=args.wordcloud_image_path,
+        generate_from_frequencies=args.generate_from_frequencies
+    )
     print('Done!')

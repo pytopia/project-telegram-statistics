@@ -2,18 +2,37 @@
 Export Statistics for a Telegram Group Chat
 
 ## How to Run
-First, in main repo directory, run the following code to add `src` to your `PYTHONPATH`:
+### Telegram Statistics and Word Cloud
+The `src/stats.py` file contains the main function to export telegram chat word cloud and the number of questions people have responded to.
+
+To generate word cloud and get stats, in main repo directory, run the following command in your terminal to add `src` to your `PYTHONPATH`:
 ```
 export PYTHONPATH=${PWD}
 ```
 
 Then run:
 ```
-python src/chat_statistics/stats.py
+python src/stats.py --chat_json path_to_telegram_chat_export  --wordcloud_image_path path_to_output_image
 ```
-to generate a word cloud of json data in `DATA_DIR`
+to generate a word cloud of json data in `DATA_DIR`. Top users are shown in terminal with the number of questions they have answered.
 
-## Adding Font:
+### Telegram Graph
+The `src/graph.py` file contains the main function to export a graph of people connections in a telegram chat. The graph is generated using the `pyvis` library.
+Every node in the graph is a user in the chat. The edges are the connections between users. If two people replied to each other in messages, they are connected.
+
+To generate word cloud and get stats, in main repo directory, run the following command in your terminal to add `src` to your `PYTHONPATH`:
+```
+export PYTHONPATH=${PWD}
+```
+
+Then run:
+```
+python src/graph.py --chat_json path_to_telegram_chat_export --output_graph_path path_to_dump_graph --top_n number_of_top_users_to_show
+```
+
+If you ignore `--top_n`, the graph will be generated with all users in the chat. Note that the graph is not very useful if the chat is too big.
+
+## Adding Font for Word Cloud
 Use Vazir font, which may be found in the following repository, to better display Persian words alongside English words:
 
 https://github.com/rastikerdar/vazir-font/releases
