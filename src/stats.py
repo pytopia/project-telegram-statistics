@@ -102,12 +102,17 @@ class ChatStatistics:
         top_users = dict(Counter(users).most_common(top_n))
 
         fig, ax = plt.subplots(figsize=(top_n, top_n * 0.5))
+        ax.set(
+            title=f'Top {top_n} Users in Replying to Questions',
+            xlabel='Number of Replies',
+            ylabel='User',
+        )
         sns.set(
             font_scale=3,
             style='whitegrid',
         )
         sns.barplot(y=list(top_users.keys()), x=list(top_users.values()), ax=ax)
-        fig.savefig(DATA_DIR / 'top_users.png')
+        fig.savefig(DATA_DIR / 'top_users.png', dpi=500)
 
     def remove_stopwords(self, text):
         """Removes stop-words from the text.
@@ -205,7 +210,6 @@ if __name__ == "__main__":
 
     chat_stats = ChatStatistics(chat_json=args.chat_json)
     top_users = chat_stats.get_top_users(top_n=args.top_n)
-    print(top_users)
 
     chat_stats.generate_word_cloud(
         output_dir=args.output_dir,
