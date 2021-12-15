@@ -7,13 +7,17 @@ from typing import Union
 
 import arabic_reshaper
 import demoji
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
 from bidi.algorithm import get_display
 from hazm import Normalizer, sent_tokenize, word_tokenize
 from loguru import logger
+from PIL import Image
+from tqdm import tqdm
 from wordcloud import WordCloud
 
 from src.data import DATA_DIR
-from tqdm import tqdm
 
 
 class ChatStatistics:
@@ -95,7 +99,15 @@ class ChatStatistics:
                 continue
             users.append(msg['from'])
 
-        return dict(Counter(users).most_common(top_n))
+        top_users = dict(Counter(users).most_common(top_n))
+
+        fig, ax = plt.subplots(figsize=(top_n, top_n * 0.5))
+        sns.set(
+            font_scale=3,
+            style='whitegrid',
+        )
+        sns.barplot(y=list(top_users.keys()), x=list(top_users.values()), ax=ax)
+        fig.savefig(DATA_DIR / 'top_users.png')
 
     def remove_stopwords(self, text):
         """Removes stop-words from the text.
@@ -117,15 +129,16 @@ class ChatStatistics:
 
     def generate_word_cloud(
         self,
-        wordcloud_image_path: Union[str, Path],
+        output_dir: Union[str, Path],
         generate_from_frequencies: bool = False,
         width: int = 800, height: int = 600,
         max_font_size: int = 250,
         background_color: str = 'white',
+        mask_image_path: Union[str, Path] = None,
     ):
         """Generates a word cloud from the chat data
 
-        :param wordcloud_image_path: path to output directory for word cloud image
+        :param output_dir: path to output directory for word cloud image and top user statistics.
         """
         logger.info("Loading text content...")
         text_content = ''
@@ -147,11 +160,15 @@ class ChatStatistics:
             else:
                 text_content += f" {self.remove_stopwords(msg)}"
 
+        if mask_image_path:
+            logger.info(f"Loading mask image from {mask_image_path}...")
+            mask = np.array(Image.open(mask_image_path))
         wordcloud = WordCloud(
             width=width, height=height,
             font_path=str(DATA_DIR / 'Vazir.ttf'),
             background_color=background_color,
-            max_font_size=max_font_size
+            max_font_size=max_font_size,
+            mask=mask,
         )
 
         if generate_from_frequencies:
@@ -173,16 +190,17 @@ class ChatStatistics:
             logger.info("Generating word cloud...")
             wordcloud.generate(text_content)
 
-        logger.info(f"Saving word cloud to {wordcloud_image_path}")
-        wordcloud.to_file(str(Path(wordcloud_image_path)))
+        logger.info(f"Saving word cloud to {output_dir}")
+        wordcloud.to_file(str(Path(output_dir) / 'word_cloud.png'))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--chat_json", help="Path to telegram export json file")
-    parser.add_argument("--wordcloud_image_path", help="Path to output directory for graph image")
+    parser.add_argument("--output_dir", help="Path to output directory for graph image")
     parser.add_argument("--top_n", help="Number of top users to get", type=int, default=10)
     parser.add_argument("--generate_from_frequencies", action='store_true', help="Generate word cloud from frequencies")
+    parser.add_argument("--mask_image", help="Path to mask image")
     args = parser.parse_args()
 
     chat_stats = ChatStatistics(chat_json=args.chat_json)
@@ -190,7 +208,8 @@ if __name__ == "__main__":
     print(top_users)
 
     chat_stats.generate_word_cloud(
-        wordcloud_image_path=args.wordcloud_image_path,
-        generate_from_frequencies=args.generate_from_frequencies
+        output_dir=args.output_dir,
+        generate_from_frequencies=args.generate_from_frequencies,
+        mask_image_path=args.mask_image,
     )
     print('Done!')
