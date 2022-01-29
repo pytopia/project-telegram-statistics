@@ -30,14 +30,14 @@ class ChatStatistics:
         """
         # load chat data
         logger.info(f"Loading chat data from {chat_json}")
-        with open(chat_json) as f:
+        with open(chat_json, encoding='UTF8') as f:
             self.chat_data = json.load(f)
 
         self.normalizer = Normalizer()
 
         # load stopwords
         logger.info(f"Loading stopwords from {DATA_DIR / 'stopwords.txt'}")
-        stop_words = open(DATA_DIR / 'stopwords.txt').readlines()
+        stop_words = open(DATA_DIR / 'stopwords.txt', encoding='UTF8').readlines()
         stop_words = map(str.strip, stop_words)
         self.stop_words = set(map(self.normalizer.normalize, stop_words))
 
@@ -128,7 +128,29 @@ class ChatStatistics:
 
         :param text: Text that contains emoji
         """
-        regrex_pattern = re.compile(pattern="[\u2069\u2066]+", flags=re.UNICODE)
+        regrex_pattern = re.compile(pattern="["
+                               u"\U0001F600-\U0001F64F"  # emoticons
+                               u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                               u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                               u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                               u"\U00002702-\U000027B0"
+                               u"\U000024C2-\U0001F251"
+                               u"\U0001f926-\U0001f937"
+                               u'\U00010000-\U0010ffff'
+                               u"\u200d"
+                               u"\u2640-\u2642"
+                               u"\u2600-\u2B55"
+                               u"\u23cf"
+                               u"\u23e9"
+                               u"\u231a"
+                               u"\u3030"
+                               u"\ufe0f"
+                               u"\u2069"
+                               u"\u2066"
+                               u"\u200c"
+                               u"\u2068"
+                               u"\u2067"
+                               "]+", flags=re.UNICODE)
         text = regrex_pattern.sub('', text)
         return demoji.replace(text, " ")
 
